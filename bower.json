@@ -1,5 +1,5 @@
 {
-	"name": "bLazy",
+	"name": "ExtBLazy",
 	"main": "blazy.js",
 	"version": "1.5.2",
 	"description": "bLazy is a lightweight script for lazy loading and multi-serving images",
@@ -19,6 +19,11 @@
 			"name": "Bjørn Klinggaard",
 			"url": "http://dinbror.dk",
 			"email": "hello@dinbror.dk"
+		},
+		{
+			"name": "András Müller",
+			"url": "http://andrasmuller.com",
+			"email": "info@andrasmuller.com"
 		}
 	],
 	"license": "MIT",

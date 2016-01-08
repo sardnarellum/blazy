@@ -4,7 +4,7 @@
   (c) Bjoern Klinggaard - @bklinggaard - http://dinbror.dk/blazy
 */
 ;
-(function(root, blazy) {
+(function (root, blazy) {
     if (typeof define === 'function' && define.amd) {
         // AMD. Register bLazy as an anonymous module
         define(blazy);
@@ -17,7 +17,7 @@
         // Browser globals. Register bLazy on window
         root.Blazy = blazy();
     }
-})(this, function() {
+})(this, function () {
     'use strict';
 
     //private vars
@@ -28,7 +28,7 @@
         //IE7- fallback for missing querySelectorAll support
         if (!document.querySelectorAll) {
             var s = document.createStyleSheet();
-            document.querySelectorAll = function(r, c, i, j, a) {
+            document.querySelectorAll = function (r, c, i, j, a) {
                 a = document.all, c = [], r = r.replace(/\[for\b/gi, '[htmlFor').split(',');
                 for (i = r.length; i--;) {
                     s.addRule(r[i], 'k:v');
@@ -47,6 +47,9 @@
         scope.options = options || {};
         scope.options.error = scope.options.error || false;
         scope.options.offset = scope.options.offset || 100;
+        scope.options.dynamic = scope.options.dynamic || false;
+        scope.options.maxSideLength = scope.options.maxSideLength || false;
+        scope.options.crop = scope.options.crop || false;
         scope.options.success = scope.options.success || false;
         scope.options.selector = scope.options.selector || '.b-lazy';
         scope.options.separator = scope.options.separator || '|';
@@ -55,8 +58,8 @@
         scope.options.breakpoints = scope.options.breakpoints || false;
         scope.options.loadInvisible = scope.options.loadInvisible || false;
         scope.options.successClass = scope.options.successClass || 'b-loaded';
-		scope.options.validateDelay = scope.options.validateDelay || 25;
-		scope.options.saveViewportOffsetDelay = scope.options.saveViewportOffsetDelay || 50;
+        scope.options.validateDelay = scope.options.validateDelay || 25;
+        scope.options.saveViewportOffsetDelay = scope.options.saveViewportOffsetDelay || 50;
         scope.options.src = source = scope.options.src || 'data-src';
         isRetina = window.devicePixelRatio > 1;
         viewport = {};
@@ -66,24 +69,24 @@
 
         /* public functions
          ************************************/
-        scope.revalidate = function() {
+        scope.revalidate = function () {
             initialize(this);
         };
-        scope.load = function(elements, force) {
+        scope.load = function (elements, force) {
             var opt = this.options;
             if (elements.length === undefined) {
                 loadElement(elements, force, opt);
             } else {
-                each(elements, function(element) {
+                each(elements, function (element) {
                     loadElement(element, force, opt);
                 });
             }
         };
-        scope.destroy = function() {
+        scope.destroy = function () {
             var self = this;
             var util = self._util;
             if (self.options.container) {
-                each(self.options.container, function(object) {
+                each(self.options.container, function (object) {
                     unbindEvent(object, 'scroll', util.validateT);
                 });
             }
@@ -96,16 +99,16 @@
         };
 
         //throttle, ensures that we don't call the functions too often
-        util.validateT = throttle(function() {
+        util.validateT = throttle(function () {
             validate(scope);
         }, scope.options.validateDelay, scope);
-        util.saveViewportOffsetT = throttle(function() {
+        util.saveViewportOffsetT = throttle(function () {
             saveViewportOffset(scope.options.offset);
         }, scope.options.saveViewportOffsetDelay, scope);
         saveViewportOffset(scope.options.offset);
 
         //handle multi-served image src
-        each(scope.options.breakpoints, function(object) {
+        each(scope.options.breakpoints, function (object) {
             if (object.width >= window.screen.width) {
                 source = object.src;
                 return false;
@@ -128,7 +131,7 @@
         if (util.destroyed) {
             util.destroyed = false;
             if (self.options.container) {
-                each(self.options.container, function(object) {
+                each(self.options.container, function (object) {
                     bindEvent(object, 'scroll', util.validateT);
                 });
             }
@@ -173,27 +176,54 @@
                 var src = dataSrcSplitted[isRetina && dataSrcSplitted.length > 1 ? 1 : 0];
                 var isImage = ele.nodeName.toLowerCase() === 'img';
                 // cleanup markup, remove data source attributes
-                each(options.breakpoints, function(object) {
+                each(options.breakpoints, function (object) {
                     ele.removeAttribute(object.src);
                 });
                 ele.removeAttribute(options.src);
+
+                if (options.dynamic) {
+
+                    var cropW = isImage || !options.crop || window.screen.width < ele.clientWidth
+                        ? window.screen.width
+                        : ele.clientWidth;
+
+                    var cropH = isImage || !options.crop || window.screen.height < ele.clientHeight
+                        ? window.screen.height
+                        : ele.clientHeight;
+
+                    var width = options.maxSideLength
+                        ? (cropW * devicePixelRatio <= options.maxSideLength
+                            ? cropW * devicePixelRatio
+                            : options.maxSideLength)
+                        : cropW * devicePixelRatio;
+
+                    var height = options.maxSideLength
+                        ? (cropH * devicePixelRatio <= options.maxSideLength
+                            ? cropH * devicePixelRatio
+                            : options.maxSideLength)
+                        : cropH * devicePixelRatio;
+
+                    src = src.replace("{w}", width)
+                             .replace("{h}", height);
+                }
+
                 if (isImage || ele.src === undefined) {
                     var img = new Image();
-                    img.onerror = function() {
+                    img.onerror = function () {
                         if (options.error) options.error(ele, "invalid");
                         addClass(ele, options.errorClass);
                     };
-                    img.onload = function() {
+                    img.onload = function () {
                         // Is element an image or should we add the src as a background image?
                         isImage ? ele.src = src : ele.style.backgroundImage = 'url("' + src + '")';
                         addClass(ele, options.successClass);
                         if (options.success) options.success(ele);
                     };
-					img.src = src; //preload
+                    img.src = src; //preload
                 } else {
-					ele.src = src;
-					addClass(ele, options.successClass);
-				}
+                    ele.src = src;
+                    addClass(ele, options.successClass);
+                }
             } else {
                 if (options.error) options.error(ele, "missing");
                 if (!hasClass(ele, options.errorClass)) addClass(ele, options.errorClass);
@@ -204,16 +234,16 @@
     function hasClass(ele, className) {
         return (' ' + ele.className + ' ').indexOf(' ' + className + ' ') !== -1;
     }
-	
-	function addClass(ele, className){
-		ele.className = ele.className + ' ' + className;
-	}
+
+    function addClass(ele, className) {
+        ele.className = ele.className + ' ' + className;
+    }
 
     function toArray(selector) {
-		var array = [];
- 		var nodelist = document.querySelectorAll(selector);
- 		for(var i = nodelist.length; i--; array.unshift(nodelist[i])){}
-		return array;
+        var array = [];
+        var nodelist = document.querySelectorAll(selector);
+        for (var i = nodelist.length; i--; array.unshift(nodelist[i])) { }
+        return array;
     }
 
     function saveViewportOffset(offset) {
@@ -240,13 +270,13 @@
     function each(object, fn) {
         if (object && fn) {
             var l = object.length;
-            for (var i = 0; i < l && fn(object[i], i) !== false; i++) {}
+            for (var i = 0; i < l && fn(object[i], i) !== false; i++) { }
         }
     }
 
     function throttle(fn, minDelay, scope) {
         var lastCall = 0;
-        return function() {
+        return function () {
             var now = +new Date();
             if (now - lastCall < minDelay) {
                 return;
